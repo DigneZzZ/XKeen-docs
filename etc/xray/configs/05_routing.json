@@ -1,0 +1,60 @@
+// Настройка маршрутизации
+{
+  "routing": {
+    "rules": [
+
+      // Блокировка  |   Уязвимые UDP порты
+      {
+        "inboundTag": ["redirect", "tproxy"],
+        "outboundTag": "block",
+        "type": "field",
+        "network": "udp",
+        "port": "135, 137, 138, 139"
+      },
+	  
+      // Блокировка | Реклама и аналитика
+      {
+        "inboundTag": ["redirect", "tproxy"],
+        "outboundTag": "block",
+        "type": "field",
+        "domain": [
+        "appcenter.ms"
+        ]
+      },
+	  
+      // VPS подключение  |  Доменные имена
+      {
+        "inboundTag": ["redirect", "tproxy"],
+        "outboundTag": "vless-reality",
+        "type": "field",
+        "domain": [
+        "ext:geosite_v2fly.dat:google",
+        "ext:geosite_v2fly.dat:speedtest",
+        "ext:geosite_v2fly.dat:tiktok",
+        "ext:geosite_zkeen.dat:domains",
+        "ext:geosite_zkeen.dat:other",
+        "2ip.ru",
+        "2ip.io"
+        ]
+      },
+	  
+      {
+      // VPS подключение  |  IP адреса
+        "inboundTag": ["redirect", "tproxy"],
+        "outboundTag": "vless-reality",
+        "type": "field",
+        "ip": [
+        "ext:geoip_v2fly.dat:google",
+        "ext:geoip_v2fly.dat:twitter"
+        ]
+      },
+
+      // Прямое подключение  |  Все остальное
+      {
+        "inboundTag": ["redirect", "tproxy"],
+        "outboundTag": "direct",
+        "type": "field"
+      }
+    ]
+  }
+}
