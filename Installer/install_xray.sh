@@ -47,9 +47,11 @@ if [ "$ACTION" = "install" ]; then
   if [ -n "$VERSION_ARG" ]; then
     VERSION_PATH="v$VERSION_ARG"
     URL_BASE="https://github.com/XTLS/Xray-core/releases/download/$VERSION_PATH"
+    BACKUP_NAME="xray_backup_v$VERSION_ARG"
   else
     VERSION_PATH="latest"
     URL_BASE="https://github.com/XTLS/Xray-core/releases/latest/download"
+    BACKUP_NAME="xray_backup_v1.8.4"
   fi
 
   case $ARCH in
@@ -76,57 +78,59 @@ if [ "$ACTION" = "install" ]; then
   esac
 
   # Действие в зависимости от параметра
-  # Остановите xkeen
+  # Остановка xkeen
   printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
 
   # Убедитесь, что /opt/sbin существует
   mkdir -p /opt/sbin
 
-  # Проверьте, существует ли уже файл xray и архивируйте его
+  # Проверьте, существует ли уже файл xray и резервная копия с фиксированным именем
   if [ -f /opt/sbin/xray ]; then
-    printf "${GREEN}Архивация существующего файла xray...${NC}\n"
-    TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-    STAT=$(stat -c "%a %U %G" /opt/sbin/xray)
-    echo "$STAT" > /opt/sbin/xray_permissions
-    mv /opt/sbin/xray /opt/sbin/xray_backup_$VERSION-$TIMESTAMP
+    if [ ! -f /opt/sbin/$BACKUP_NAME ]; then
+      printf "${GREEN}Архивация существующего файла xray...${NC}\n"
+      mv /opt/sbin/xray /opt/sbin/$BACKUP_NAME
+    else
+      printf "${GREEN}Резервная копия с именем $BACKUP_NAME уже существует.${NC}\n"
+    fi
   fi
 
   # Скачайте архив
   printf "${GREEN}Скачивание $ARCHIVE...${NC}\n"
   curl -L -o /tmp/$ARCHIVE $URL
 
-  # Извлеките только нужный файл из архива
+  # Извлечение только нужного файла из архива
   printf "${GREEN}Извлечение xray из $ARCHIVE...${NC}\n"
   TEMP_DIR=$(mktemp -d)
   unzip -j /tmp/$ARCHIVE xray -d $TEMP_DIR
 
-  # Переместите только нужный файл в /opt/sbin
+  # Перемещение только нужного файла в /opt/sbin
   printf "${GREEN}Перемещение xray в /opt/sbin...${NC}\n"
   mv $TEMP_DIR/xray /opt/sbin/xray
 
-  # Установите права на исполняемый файл
+  # Установка прав на исполняемый файл
   printf "${GREEN}Установка прав доступа...${NC}\n"
   chmod 755 /opt/sbin/xray
 
-  # Удалите временную директорию и архив
+  # Удаление временной директории и архива
   printf "${GREEN}Очистка...${NC}\n"
   rm -rf $TEMP_DIR
   rm /tmp/$ARCHIVE
 
-  # Запустите xkeen
+  # Запуск xkeen
   printf "${GREEN}Запуск xkeen...${NC}\n"
   xkeen -start
 
   printf "${GREEN}Установка завершена.${NC}\n"
 
 elif [ "$ACTION" = "recover" ]; then
-  # Остановите xkeen
+  # Остановка xkeen
   printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
 
   # Проверьте, есть ли резервные копии
-  BACKUP_FILE=$(ls -t /opt/sbin/xray_backup_v* 2>/dev/null | head -1)
+  BACKUP_FILE="/opt/sbin/xray_backup_v1.8.4"
+
   if [ -f "$BACKUP_FILE" ]; then
     printf "${GREEN}Восстановление оригинального файла xray...${NC}\n"
     mv "$BACKUP_FILE" /opt/sbin/xray
@@ -144,7 +148,7 @@ elif [ "$ACTION" = "recover" ]; then
     exit 1
   fi
 
-  # Запустите xkeen
+  # Запуск xkeen
   printf "${GREEN}Запуск xkeen...${NC}\n"
   xkeen -start
 
