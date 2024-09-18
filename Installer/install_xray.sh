@@ -3,15 +3,20 @@
 # Определите архитектуру процессора
 ARCH=$(uname -m)
 
-# Установите переменную с URL архива
+# Установите переменные для URL и имени архива в зависимости от архитектуры
 case $ARCH in
   "aarch64")
     URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip"
     ARCHIVE="Xray-linux-arm64-v8a.zip"
     ;;
   "mips"*)
-    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32le.zip"
-    ARCHIVE="Xray-linux-mips32le.zip"
+    if [ "$ARCH" = "mips32" ]; then
+      URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32.zip"
+      ARCHIVE="Xray-linux-mips32.zip"
+    else
+      URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32le.zip"
+      ARCHIVE="Xray-linux-mips32le.zip"
+    fi
     ;;
   *)
     echo "Unsupported architecture: $ARCH"
