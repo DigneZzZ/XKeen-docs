@@ -6,10 +6,20 @@ RED='\033[0;31m'
 NC='\033[0m' # Без цвета
 
 # Версия скрипта
-VERSION="1.1.0"
+VERSION="1.3.0"
 
 # Вывод версии скрипта
 printf "${GREEN}Версия скрипта: $VERSION${NC}\n"
+
+# Функция для вывода справки
+show_help() {
+    printf "${GREEN}Использование: $0 {install|recover|help} [version]${NC}\n"
+    printf "${GREEN}  install [version] - Установить Xray.${NC}\n"
+    printf "${GREEN}    [version] - Опциональный параметр. Номер версии Xray для установки (например, 1.8.4).${NC}\n"
+    printf "${GREEN}    Если версия не указана, будет загружена последняя доступная версия.${NC}\n"
+    printf "${GREEN}  recover - Восстановить Xray из резервной копии.${NC}\n"
+    printf "${GREEN}  help - Показать это сообщение.${NC}\n"
+}
 
 # Определите архитектуру процессора
 ARCH=$(uname -m)
@@ -20,37 +30,52 @@ lscpu | grep -E 'Architecture|Model name|CPU(s)'
 
 # Проверка аргумента командной строки
 ACTION=$1
-if [ "$ACTION" != "install" ] && [ "$ACTION" != "recover" ]; then
-  printf "${RED}Использование: $0 {install|recover}${NC}\n"
+VERSION_ARG=$2
+
+if [ "$ACTION" != "install" ] && [ "$ACTION" != "recover" ] && [ "$ACTION" != "help" ]; then
+  printf "${RED}Использование: $0 {install|recover|help} [version]${NC}\n"
   exit 1
 fi
 
-# Установите переменные для URL и имени архива в зависимости от архитектуры
-case $ARCH in
-  "aarch64")
-    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip"
-    ARCHIVE="Xray-linux-arm64-v8a.zip"
-    ;;
-  "mips"|"mipsle")
-    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32le.zip"
-    ARCHIVE="Xray-linux-mips32le.zip"
-    ;;
-  "mips64")
-    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips64.zip"
-    ARCHIVE="Xray-linux-mips64.zip"
-    ;;
-  "mips64le")
-    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips64le.zip"
-    ARCHIVE="Xray-linux-mips64le.zip"
-    ;;
-  *)
-    printf "${RED}Неизвестная архитектура: $ARCH${NC}\n"
-    exit 1
-    ;;
-esac
+if [ "$ACTION" = "help" ]; then
+    show_help
+    exit 0
+fi
 
-# Действие в зависимости от параметра
+# Установите переменные для URL и имени архива в зависимости от архитектуры и версии
 if [ "$ACTION" = "install" ]; then
+  if [ -n "$VERSION_ARG" ]; then
+    VERSION_PATH="v$VERSION_ARG"
+    URL_BASE="https://github.com/XTLS/Xray-core/releases/download/$VERSION_PATH"
+  else
+    VERSION_PATH="latest"
+    URL_BASE="https://github.com/XTLS/Xray-core/releases/latest/download"
+  fi
+
+  case $ARCH in
+    "aarch64")
+      URL="$URL_BASE/Xray-linux-arm64-v8a.zip"
+      ARCHIVE="Xray-linux-arm64-v8a.zip"
+      ;;
+    "mips"|"mipsle")
+      URL="$URL_BASE/Xray-linux-mips32le.zip"
+      ARCHIVE="Xray-linux-mips32le.zip"
+      ;;
+    "mips64")
+      URL="$URL_BASE/Xray-linux-mips64.zip"
+      ARCHIVE="Xray-linux-mips64.zip"
+      ;;
+    "mips64le")
+      URL="$URL_BASE/Xray-linux-mips64le.zip"
+      ARCHIVE="Xray-linux-mips64le.zip"
+      ;;
+    *)
+      printf "${RED}Неизвестная архитектура: $ARCH${NC}\n"
+      exit 1
+      ;;
+  esac
+
+  # Действие в зависимости от параметра
   # Остановите xkeen
   printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
@@ -64,7 +89,7 @@ if [ "$ACTION" = "install" ]; then
     TIMESTAMP=$(date +"%Y%m%d%H%M%S")
     STAT=$(stat -c "%a %U %G" /opt/sbin/xray)
     echo "$STAT" > /opt/sbin/xray_permissions
-    mv /opt/sbin/xray /opt/sbin/xray_backup_$TIMESTAMP
+    mv /opt/sbin/xray /opt/sbin/xray_backup_$VERSION-$TIMESTAMP
   fi
 
   # Скачайте архив
@@ -101,7 +126,7 @@ elif [ "$ACTION" = "recover" ]; then
   xkeen -stop
 
   # Проверьте, есть ли резервные копии
-  BACKUP_FILE=$(ls -t /opt/sbin/xray_backup_* 2>/dev/null | head -1)
+  BACKUP_FILE=$(ls -t /opt/sbin/xray_backup_v* 2>/dev/null | head -1)
   if [ -f "$BACKUP_FILE" ]; then
     printf "${GREEN}Восстановление оригинального файла xray...${NC}\n"
     mv "$BACKUP_FILE" /opt/sbin/xray
