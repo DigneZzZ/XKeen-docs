@@ -7,7 +7,7 @@ NC='\033[0m' # Без цвета
 
 # Определите архитектуру процессора
 ARCH=$(uname -m)
-echo "${GREEN}Определенная архитектура: $ARCH${NC}"
+printf "${GREEN}Определенная архитектура: $ARCH${NC}\n"
 
 # Дополнительная информация о процессоре для проверки
 lscpu | grep -E 'Architecture|Model name|CPU(s)'
@@ -15,7 +15,7 @@ lscpu | grep -E 'Architecture|Model name|CPU(s)'
 # Проверка аргумента командной строки
 ACTION=$1
 if [ "$ACTION" != "install" ] && [ "$ACTION" != "recover" ]; then
-  echo "${RED}Использование: $0 {install|recover}${NC}"
+  printf "${RED}Использование: $0 {install|recover}${NC}\n"
   exit 1
 fi
 
@@ -38,7 +38,7 @@ case $ARCH in
     ARCHIVE="Xray-linux-mips64le.zip"
     ;;
   *)
-    echo "${RED}Неизвестная архитектура: $ARCH${NC}"
+    printf "${RED}Неизвестная архитектура: $ARCH${NC}\n"
     exit 1
     ;;
 esac
@@ -46,7 +46,7 @@ esac
 # Действие в зависимости от параметра
 if [ "$ACTION" = "install" ]; then
   # Остановите xkeen
-  echo "${GREEN}Остановка xkeen...${NC}"
+  printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
 
   # Убедитесь, что /opt/sbin существует
@@ -54,7 +54,7 @@ if [ "$ACTION" = "install" ]; then
 
   # Проверьте, существует ли уже файл xray и архивируйте его
   if [ -f /opt/sbin/xray ]; then
-    echo "${GREEN}Архивация существующего файла xray...${NC}"
+    printf "${GREEN}Архивация существующего файла xray...${NC}\n"
     TIMESTAMP=$(date +"%Y%m%d%H%M%S")
     STAT=$(stat -c "%a %U %G" /opt/sbin/xray)
     echo "$STAT" > /opt/sbin/xray_permissions
@@ -62,42 +62,42 @@ if [ "$ACTION" = "install" ]; then
   fi
 
   # Скачайте архив
-  echo "${GREEN}Скачивание $ARCHIVE...${NC}"
+  printf "${GREEN}Скачивание $ARCHIVE...${NC}\n"
   curl -L -o /tmp/$ARCHIVE $URL
 
   # Извлеките только нужный файл из архива
-  echo "${GREEN}Извлечение xray из $ARCHIVE...${NC}"
+  printf "${GREEN}Извлечение xray из $ARCHIVE...${NC}\n"
   TEMP_DIR=$(mktemp -d)
   unzip -j /tmp/$ARCHIVE xray -d $TEMP_DIR
 
   # Переместите только нужный файл в /opt/sbin
-  echo "${GREEN}Перемещение xray в /opt/sbin...${NC}"
+  printf "${GREEN}Перемещение xray в /opt/sbin...${NC}\n"
   mv $TEMP_DIR/xray /opt/sbin/xray
 
   # Установите права на исполняемый файл
-  echo "${GREEN}Установка прав доступа...${NC}"
+  printf "${GREEN}Установка прав доступа...${NC}\n"
   chmod 755 /opt/sbin/xray
 
   # Удалите временную директорию и архив
-  echo "${GREEN}Очистка...${NC}"
+  printf "${GREEN}Очистка...${NC}\n"
   rm -rf $TEMP_DIR
   rm /tmp/$ARCHIVE
 
   # Запустите xkeen
-  echo "${GREEN}Запуск xkeen...${NC}"
+  printf "${GREEN}Запуск xkeen...${NC}\n"
   xkeen -start
 
-  echo "${GREEN}Установка завершена.${NC}"
+  printf "${GREEN}Установка завершена.${NC}\n"
 
 elif [ "$ACTION" = "recover" ]; then
   # Остановите xkeen
-  echo "${GREEN}Остановка xkeen...${NC}"
+  printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
 
   # Проверьте, есть ли резервные копии
   BACKUP_FILE=$(ls -t /opt/sbin/xray_backup_* 2>/dev/null | head -1)
   if [ -f "$BACKUP_FILE" ]; then
-    echo "${GREEN}Восстановление оригинального файла xray...${NC}"
+    printf "${GREEN}Восстановление оригинального файла xray...${NC}\n"
     mv "$BACKUP_FILE" /opt/sbin/xray
 
     # Восстановите права доступа
@@ -109,13 +109,13 @@ elif [ "$ACTION" = "recover" ]; then
       chmod 755 /opt/sbin/xray
     fi
   else
-    echo "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}"
+    printf "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}\n"
     exit 1
   fi
 
   # Запустите xkeen
-  echo "${GREEN}Запуск xkeen...${NC}"
+  printf "${GREEN}Запуск xkeen...${NC}\n"
   xkeen -start
 
-  echo "${GREEN}Восстановление завершено.${NC}"
+  printf "${GREEN}Восстановление завершено.${NC}\n"
 fi
