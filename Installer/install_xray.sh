@@ -29,6 +29,14 @@ case $ARCH in
     URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32le.zip"
     ARCHIVE="Xray-linux-mips32le.zip"
     ;;
+  "mips64")
+    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips64.zip"
+    ARCHIVE="Xray-linux-mips64.zip"
+    ;;
+  "mips64le")
+    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips64le.zip"
+    ARCHIVE="Xray-linux-mips64le.zip"
+    ;;
   *)
     echo -e "${RED}Неизвестная архитектура: $ARCH${NC}"
     exit 1
