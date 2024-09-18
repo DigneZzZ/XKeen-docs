@@ -6,7 +6,7 @@ RED='\033[0;31m'
 NC='\033[0m' # Без цвета
 
 # Версия скрипта
-VERSION="1.3.0"
+VERSION="1.4.0"
 
 # Вывод версии скрипта
 printf "${GREEN}Версия скрипта: $VERSION${NC}\n"
@@ -89,6 +89,8 @@ if [ "$ACTION" = "install" ]; then
   if [ -f /opt/sbin/xray ]; then
     if [ ! -f /opt/sbin/$BACKUP_NAME ]; then
       printf "${GREEN}Архивация существующего файла xray...${NC}\n"
+      # Сохраните права доступа текущего файла xray
+      ls -l /opt/sbin/xray | awk '{print $1}' > /opt/sbin/xray_permissions
       mv /opt/sbin/xray /opt/sbin/$BACKUP_NAME
     else
       printf "${GREEN}Резервная копия с именем $BACKUP_NAME уже существует.${NC}\n"
