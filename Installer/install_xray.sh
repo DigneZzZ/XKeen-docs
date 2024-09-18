@@ -6,7 +6,7 @@ ARCH=$(uname -m)
 # Проверка аргумента командной строки
 ACTION=$1
 if [ "$ACTION" != "install" ] && [ "$ACTION" != "recover" ]; then
-  echo "Usage: $0 {install|recover}"
+  echo "Использование: $0 {install|recover}"
   exit 1
 fi
 
@@ -26,7 +26,7 @@ case $ARCH in
     fi
     ;;
   *)
-    echo "Unsupported architecture: $ARCH"
+    echo "Неизвестная архитектура: $ARCH"
     exit 1
     ;;
 esac
@@ -34,7 +34,7 @@ esac
 # Действие в зависимости от параметра
 if [ "$ACTION" = "install" ]; then
   # Остановите xkeen
-  echo "Stopping xkeen..."
+  echo "Остановка xkeen..."
   xkeen -stop
 
   # Убедитесь, что /opt/sbin существует
@@ -42,45 +42,50 @@ if [ "$ACTION" = "install" ]; then
 
   # Проверьте, существует ли уже файл xray и архивируйте его
   if [ -f /opt/sbin/xray ]; then
-    echo "Archiving existing xray file..."
+    echo "Архивация существующего файла xray..."
     TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-    # Сохраните права доступа
     STAT=$(stat -c "%a %U %G" /opt/sbin/xray)
     echo "$STAT" > /opt/sbin/xray_permissions
     mv /opt/sbin/xray /opt/sbin/xray_backup_$TIMESTAMP
   fi
 
   # Скачайте архив
-  echo "Downloading $ARCHIVE..."
+  echo "Скачивание $ARCHIVE..."
   curl -L -o /tmp/$ARCHIVE $URL
 
-  # Распакуйте архив в /opt/sbin
-  echo "Extracting $ARCHIVE..."
-  unzip /tmp/$ARCHIVE -d /opt/sbin
+  # Извлеките только нужный файл из архива
+  echo "Извлечение xray из $ARCHIVE..."
+  TEMP_DIR=$(mktemp -d)
+  unzip -j /tmp/$ARCHIVE xray -d $TEMP_DIR
+
+  # Переместите только нужный файл в /opt/sbin
+  echo "Перемещение xray в /opt/sbin..."
+  mv $TEMP_DIR/xray /opt/sbin/xray
 
   # Установите права на исполняемый файл
-  echo "Setting permissions..."
+  echo "Установка прав доступа..."
   chmod 755 /opt/sbin/xray
 
-  # Удалите архив
-  echo "Cleaning up..."
+  # Удалите временную директорию и архив
+  echo "Очистка..."
+  rm -rf $TEMP_DIR
   rm /tmp/$ARCHIVE
 
   # Запустите xkeen
-  echo "Starting xkeen..."
+  echo "Запуск xkeen..."
   xkeen -start
 
-  echo "Installation complete."
+  echo "Установка завершена."
 
 elif [ "$ACTION" = "recover" ]; then
   # Остановите xkeen
-  echo "Stopping xkeen..."
+  echo "Остановка xkeen..."
   xkeen -stop
 
   # Проверьте, есть ли резервные копии
   BACKUP_FILE=$(ls -t /opt/sbin/xray_backup_* 2>/dev/null | head -1)
   if [ -f "$BACKUP_FILE" ]; then
-    echo "Restoring original xray file..."
+    echo "Восстановление оригинального файла xray..."
     mv "$BACKUP_FILE" /opt/sbin/xray
 
     # Восстановите права доступа
@@ -92,14 +97,13 @@ elif [ "$ACTION" = "recover" ]; then
       chmod 755 /opt/sbin/xray
     fi
   else
-    echo "No backup file found. Cannot recover."
+    echo "Резервная копия не найдена. Восстановление невозможно."
     exit 1
   fi
 
   # Запустите xkeen
-  echo "Starting xkeen..."
+  echo "Запуск xkeen..."
   xkeen -start
 
-  echo "Recovery complete."
-
+  echo "Восстановление завершено."
 fi
