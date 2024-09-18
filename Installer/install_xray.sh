@@ -7,6 +7,10 @@ NC='\033[0m' # Без цвета
 
 # Определите архитектуру процессора
 ARCH=$(uname -m)
+echo -e "${GREEN}Определенная архитектура: $ARCH${NC}"
+
+# Дополнительная информация о процессоре для проверки
+lscpu | grep -E 'Architecture|Model name|CPU(s)'
 
 # Проверка аргумента командной строки
 ACTION=$1
@@ -21,11 +25,7 @@ case $ARCH in
     URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip"
     ARCHIVE="Xray-linux-arm64-v8a.zip"
     ;;
-  "mips32")
-    URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32.zip"
-    ARCHIVE="Xray-linux-mips32.zip"
-    ;;
-  "mipsle")
+  "mips"|"mipsle")
     URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-mips32le.zip"
     ARCHIVE="Xray-linux-mips32le.zip"
     ;;
@@ -79,25 +79,25 @@ if [ "$ACTION" = "install" ]; then
   chmod 755 /opt/sbin/xray
 
   # Удалите временную директорию и архив
-  echo -e "${GREEN}Очистка...${NC}"
+  echo -е "${GREEN}Очистка...${NC}"
   rm -rf $TEMP_DIR
   rm /tmp/$ARCHIVE
 
   # Запустите xkeen
-  echo -e "${GREEN}Запуск xkeen...${NC}"
+  echo -е "${GREEN}Запуск xkeen...${NC}"
   xkeen -start
 
-  echo -e "${GREEN}Установка завершена.${NC}"
+  echo -е "${GREEN}Установка завершена.${NC}"
 
 elif [ "$ACTION" = "recover" ]; then
   # Остановите xkeen
-  echo -e "${GREEN}Остановка xkeen...${NC}"
+  echo -е "${GREEN}Остановка xkeen...${NC}"
   xkeen -stop
 
   # Проверьте, есть ли резервные копии
   BACKUP_FILE=$(ls -t /opt/sbin/xray_backup_* 2>/dev/null | head -1)
   if [ -f "$BACKUP_FILE" ]; then
-    echo -e "${GREEN}Восстановление оригинального файла xray...${NC}"
+    echo -е "${GREEN}Восстановление оригинального файла xray...${NC}"
     mv "$BACKUP_FILE" /opt/sbin/xray
 
     # Восстановите права доступа
@@ -109,13 +109,13 @@ elif [ "$ACTION" = "recover" ]; then
       chmod 755 /opt/sbin/xray
     fi
   else
-    echo -e "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}"
+    echo -е "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}"
     exit 1
   fi
 
   # Запустите xkeen
-  echo -e "${GREEN}Запуск xkeen...${NC}"
+  echo -е "${GREEN}Запуск xkeen...${NC}"
   xkeen -start
 
-  echo -e "${GREEN}Восстановление завершено.${NC}"
+  echo -е "${GREEN}Восстановление завершено.${NC}"
 fi
