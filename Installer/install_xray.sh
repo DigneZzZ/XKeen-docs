@@ -6,7 +6,7 @@ RED='\033[0;31m'
 NC='\033[0m' # Без цвета
 
 # Версия скрипта
-VERSION="1.4.1"
+VERSION="1.4.3"
 
 # Вывод версии скрипта
 printf "${GREEN}Версия скрипта: $VERSION${NC}\n"
@@ -25,8 +25,8 @@ show_help() {
 disable_xkeen_update() {
   printf "${GREEN}Отключение автоматических обновлений Xkeen...${NC}\n"
   
-  # Использование команды 'xkeen -ux' и автоматический ввод '0' для отключения
-  echo "0" | xkeen -ux
+  # Отключение обновлений Xkeen с помощью команды xkeen -dxc без вывода сообщений
+  xkeen -dxc > /dev/null 2>&1
   
   printf "${GREEN}Автоматическое обновление Xray через Xkeen отключено, чтобы предотвратить откат до версии 1.8.4.${NC}\n"
 }
@@ -51,9 +51,6 @@ if [ "$ACTION" = "help" ]; then
     show_help
     exit 0
 fi
-
-# Вызов функции для отключения обновлений
-disable_xkeen_update
 
 # Установите переменные для URL и имени архива в зависимости от архитектуры и версии
 if [ "$ACTION" = "install" ]; then
@@ -88,7 +85,6 @@ if [ "$ACTION" = "install" ]; then
       ;;
   esac
 
-  # Действие в зависимости от параметра
   # Остановка xkeen
   printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
@@ -96,13 +92,19 @@ if [ "$ACTION" = "install" ]; then
   # Убедитесь, что /opt/sbin существует
   mkdir -p /opt/sbin
 
-  # Проверьте, существует ли уже файл xray и резервная копия с фиксированным именем
+  # Создайте директорию для резервных копий, если она не существует
+  BACKUP_DIR="/opt/backups"
+  mkdir -p $BACKUP_DIR
+
+  # Проверка наличия резервной копии в /opt/backups
+  BACKUP_FILE="$BACKUP_DIR/xray_backup_v1.8.4"
+  
   if [ -f /opt/sbin/xray ]; then
-    if [ ! -f /opt/sbin/xray_backup_v1.8.4 ]; then
+    if [ ! -f "$BACKUP_FILE" ]; then
       printf "${GREEN}Архивация существующего файла xray...${NC}\n"
       # Сохраните права доступа текущего файла xray
-      ls -l /opt/sbin/xray | awk '{print $1}' > /opt/sbin/xray_permissions
-      mv /opt/sbin/xray /opt/sbin/xray_backup_v1.8.4
+      ls -l /opt/sbin/xray | awk '{print $1}' > $BACKUP_DIR/xray_permissions
+      mv /opt/sbin/xray "$BACKUP_FILE"
     else
       printf "${GREEN}Резервная копия с именем xray_backup_v1.8.4 уже существует.${NC}\n"
     fi
@@ -118,7 +120,7 @@ if [ "$ACTION" = "install" ]; then
   unzip -j /tmp/$ARCHIVE xray -d $TEMP_DIR
 
   # Перемещение только нужного файла в /opt/sbin
-  printf "${GREEN}Перемещение xray в /opt/sbin...${NC}\н"
+  printf "${GREEN}Перемещение xray в /opt/sbin...${NC}\n"
   mv $TEMP_DIR/xray /opt/sbin/xray
 
   # Установка прав на исполняемый файл
@@ -134,6 +136,9 @@ if [ "$ACTION" = "install" ]; then
   printf "${GREEN}Запуск xkeen...${NC}\n"
   xkeen -start
 
+  # Вызов функции для отключения обновлений только после успешного завершения установки
+  disable_xkeen_update
+
   printf "${GREEN}Установка завершена.${NC}\n"
 
 elif [ "$ACTION" = "recover" ]; then
@@ -141,29 +146,29 @@ elif [ "$ACTION" = "recover" ]; then
   printf "${GREEN}Остановка xkeen...${NC}\n"
   xkeen -stop
 
-  # Проверьте, есть ли резервные копии
-  BACKUP_FILE="/opt/sbin/xray_backup_v1.8.4"
+  # Проверка наличия резервной копии
+  BACKUP_FILE="/opt/backups/xray_backup_v1.8.4"
 
   if [ -f "$BACKUP_FILE" ]; then
-    printf "${GREEN}Восстановление оригинального файла xray...${NC}\н"
+    printf "${GREEN}Восстановление оригинального файла xray...${NC}\n"
     mv "$BACKUP_FILE" /opt/sbin/xray
 
     # Восстановите права доступа
-    if [ -f /opt/sbin/xray_permissions ]; then
-      PERMS=$(cat /opt/sbin/xray_permissions)
+    if [ -f /opt/backups/xray_permissions ]; then
+      PERMS=$(cat /opt/backups/xray_permissions)
       chmod $PERMS /opt/sbin/xray
-      rm /opt/sbin/xray_permissions
+      rm /opt/backups/xray_permissions
     else
       chmod 755 /opt/sbin/xray
     fi
   else
-    printf "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}\н"
+    printf "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}\n"
     exit 1
   fi
 
   # Запуск xkeen
-  printf "${GREEN}Запуск xkeen...${NC}\н"
+  printf "${GREEN}Запуск xkeen...${NC}\n"
   xkeen -start
 
-  printf "${GREEN}Восстановление завершено.${NC}\н"
+  printf "${GREEN}Восстановление завершено.${NC}\n"
 fi
