@@ -6,7 +6,7 @@ RED='\033[0;31m'
 NC='\033[0m' # Без цвета
 
 # Версия скрипта
-VERSION="1.4.0"
+VERSION="1.4.1"
 
 # Вывод версии скрипта
 printf "${GREEN}Версия скрипта: $VERSION${NC}\n"
@@ -19,6 +19,16 @@ show_help() {
     printf "${GREEN}    Если версия не указана, будет загружена последняя доступная версия.${NC}\n"
     printf "${GREEN}  recover - Восстановить Xray из резервной копии.${NC}\n"
     printf "${GREEN}  help - Показать это сообщение.${NC}\n"
+}
+
+# Функция для отключения обновлений Xkeen
+disable_xkeen_update() {
+  printf "${GREEN}Отключение автоматических обновлений Xkeen...${NC}\n"
+  
+  # Использование команды 'xkeen -ux' и автоматический ввод '0' для отключения
+  echo "0" | xkeen -ux
+  
+  printf "${GREEN}Автоматическое обновление Xray через Xkeen отключено, чтобы предотвратить откат до версии 1.8.4.${NC}\n"
 }
 
 # Определите архитектуру процессора
@@ -42,16 +52,17 @@ if [ "$ACTION" = "help" ]; then
     exit 0
 fi
 
+# Вызов функции для отключения обновлений
+disable_xkeen_update
+
 # Установите переменные для URL и имени архива в зависимости от архитектуры и версии
 if [ "$ACTION" = "install" ]; then
   if [ -n "$VERSION_ARG" ]; then
     VERSION_PATH="v$VERSION_ARG"
     URL_BASE="https://github.com/XTLS/Xray-core/releases/download/$VERSION_PATH"
-    BACKUP_NAME="xray_backup_v$VERSION_ARG"
   else
     VERSION_PATH="latest"
     URL_BASE="https://github.com/XTLS/Xray-core/releases/latest/download"
-    BACKUP_NAME="xray_backup_v1.8.4"
   fi
 
   case $ARCH in
@@ -87,13 +98,13 @@ if [ "$ACTION" = "install" ]; then
 
   # Проверьте, существует ли уже файл xray и резервная копия с фиксированным именем
   if [ -f /opt/sbin/xray ]; then
-    if [ ! -f /opt/sbin/$BACKUP_NAME ]; then
+    if [ ! -f /opt/sbin/xray_backup_v1.8.4 ]; then
       printf "${GREEN}Архивация существующего файла xray...${NC}\n"
       # Сохраните права доступа текущего файла xray
       ls -l /opt/sbin/xray | awk '{print $1}' > /opt/sbin/xray_permissions
-      mv /opt/sbin/xray /opt/sbin/$BACKUP_NAME
+      mv /opt/sbin/xray /opt/sbin/xray_backup_v1.8.4
     else
-      printf "${GREEN}Резервная копия с именем $BACKUP_NAME уже существует.${NC}\n"
+      printf "${GREEN}Резервная копия с именем xray_backup_v1.8.4 уже существует.${NC}\n"
     fi
   fi
 
@@ -107,7 +118,7 @@ if [ "$ACTION" = "install" ]; then
   unzip -j /tmp/$ARCHIVE xray -d $TEMP_DIR
 
   # Перемещение только нужного файла в /opt/sbin
-  printf "${GREEN}Перемещение xray в /opt/sbin...${NC}\n"
+  printf "${GREEN}Перемещение xray в /opt/sbin...${NC}\н"
   mv $TEMP_DIR/xray /opt/sbin/xray
 
   # Установка прав на исполняемый файл
@@ -134,7 +145,7 @@ elif [ "$ACTION" = "recover" ]; then
   BACKUP_FILE="/opt/sbin/xray_backup_v1.8.4"
 
   if [ -f "$BACKUP_FILE" ]; then
-    printf "${GREEN}Восстановление оригинального файла xray...${NC}\n"
+    printf "${GREEN}Восстановление оригинального файла xray...${NC}\н"
     mv "$BACKUP_FILE" /opt/sbin/xray
 
     # Восстановите права доступа
@@ -146,13 +157,13 @@ elif [ "$ACTION" = "recover" ]; then
       chmod 755 /opt/sbin/xray
     fi
   else
-    printf "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}\n"
+    printf "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}\н"
     exit 1
   fi
 
   # Запуск xkeen
-  printf "${GREEN}Запуск xkeen...${NC}\n"
+  printf "${GREEN}Запуск xkeen...${NC}\н"
   xkeen -start
 
-  printf "${GREEN}Восстановление завершено.${NC}\n"
+  printf "${GREEN}Восстановление завершено.${NC}\н"
 fi
