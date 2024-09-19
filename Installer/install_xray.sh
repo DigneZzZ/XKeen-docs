@@ -3,6 +3,7 @@
 # Цвета для вывода сообщений
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[0;33m' # Желтый цвет
 NC='\033[0m' # Без цвета
 
 # Версия скрипта
@@ -23,12 +24,12 @@ show_help() {
 
 # Функция для отключения обновлений Xkeen
 disable_xkeen_update() {
-  printf "${GREEN}Отключение автоматических обновлений XKeen...${NC}\n"
+  printf "${YELLOW}Отключение автоматических обновлений Xkeen...${NC}\n"
   
   # Отключение обновлений Xkeen с помощью команды xkeen -dxc без вывода сообщений
   xkeen -dxc > /dev/null 2>&1
   
-  printf "${GREEN}Автоматическое обновление Xray через XKeen отключено, чтобы предотвратить откат до версии 1.8.4.${NC}\n"
+  printf "${GREEN}Автоматическое обновление Xray через Xkeen отключено, чтобы предотвратить откат до версии 1.8.4.${NC}\n"
 }
 
 # Определите архитектуру процессора
@@ -106,7 +107,7 @@ if [ "$ACTION" = "install" ]; then
       ls -l /opt/sbin/xray | awk '{print $1}' > $BACKUP_DIR/xray_permissions
       mv /opt/sbin/xray "$BACKUP_FILE"
     else
-      printf "${GREEN}Резервная копия с именем xray_backup_v1.8.4 уже существует.${NC}\n"
+      printf "${YELLOW}Резервная копия с именем xray_backup_v1.8.4 уже существует.${NC}\n"
     fi
   fi
 
