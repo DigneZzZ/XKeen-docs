@@ -18,6 +18,8 @@ show_help() {
     printf "${GREEN}Команды:${NC}\n"
     printf "  ${YELLOW}update|-u [version]${NC} - Обновить Xray. Если версия не указана, будет выполнено обновление до последней доступной версии.\n"
     printf "  ${YELLOW}recover|-r${NC}          - Восстановить Xray из резервной копии.\n"
+    printf "  ${YELLOW}task HH:MM day${NC}      - Запланировать обновление Xray. Если day = 8, то задание будет выполнено ежедневно.\n"
+    printf "  ${YELLOW}task 0${NC}              - Удалить запланированное обновление.\n"
     printf "  ${YELLOW}help|-h${NC}             - Показать это сообщение.\n"
 }
 
@@ -40,32 +42,64 @@ lscpu | grep -E 'Architecture|Model name|CPU(s)'
 
 # Проверка аргумента командной строки
 ACTION=$1
-VERSION_ARG=$2
 
-case $ACTION in
-    "update"|-u)
-        ACTION="update"
-        ;;
-    "recover"|-r)
-        ACTION="recover"
-        ;;
-    "help"|-h)
-        ACTION="help"
-        ;;
-    *)
-        if [ "$ACTION" != "install" ] && [ "$ACTION" != "update" ] && [ "$ACTION" != "recover" ] && [ "$ACTION" != "help" ]; then
-            printf "${RED}Использование: ${GREEN}./install_xray.sh ${YELLOW}{update|-u [version] | recover|-r | help|-h}${NC}\n"
-            exit 1
-        fi
-        ;;
-esac
+if [ "$ACTION" = "task" ]; then
+    TIME=$2
+    DAY=$3
 
-if [ "$ACTION" = "help" ]; then
-    show_help
-    exit 0
-fi
+    # Если введено время 0, удаляем задачу cron
+    if [ "$TIME" = "0" ]; then
+        crontab -l | grep -v './install_xray.sh update' | crontab -
+        printf "${GREEN}Все задачи обновления Xray удалены.${NC}\n"
+        exit 0
+    fi
 
-if [ "$ACTION" = "update" ]; then
+    # Преобразование формата времени
+    if echo "$TIME" | grep -Eq '^[0-9]{1,2}:[0-9]{1,2}$'; then
+        MINUTE=$(echo "$TIME" | cut -d':' -f2)
+        HOUR=$(echo "$TIME" | cut -d':' -f1)
+    else
+        printf "${RED}Укажите корректное время (HH:MM или H:M).${NC}\n"
+        exit 1
+    fi
+
+    # Проверка корректности дня недели (0-7 для дней недели, 8 для ежедневного выполнения)
+    if [ "$DAY" -lt 0 ] || [ "$DAY" -gt 8 ]; then
+        printf "${RED}Укажите корректный день (0-7 для дней недели или 8 для ежедневного выполнения).${NC}\n"
+        exit 1
+    fi
+
+    # Если день 8, заменяем его на * для ежедневного выполнения
+    if [ "$DAY" -eq 8 ]; then
+        DAY="*"
+    elif [ "$DAY" -eq 7 ]; then
+        DAY=0
+    fi
+
+    # Удаление старых задач cron с `./install_xray.sh update`
+    crontab -l | grep -v './install_xray.sh update' | crontab -
+
+    # Добавление новой задачи в cron
+    (crontab -l 2>/dev/null; echo "$MINUTE $HOUR * * $DAY ./install_xray.sh update") | crontab -
+
+    # Определение названия дня
+    DAY_NAME=""
+    case $DAY in
+        0) DAY_NAME="воскресенье" ;;
+        1) DAY_NAME="понедельник" ;;
+        2) DAY_NAME="вторник" ;;
+        3) DAY_NAME="среда" ;;
+        4) DAY_NAME="четверг" ;;
+        5) DAY_NAME="пятница" ;;
+        6) DAY_NAME="суббота" ;;
+        *) DAY_NAME="ежедневно" ;;
+    esac
+
+    printf "${GREEN}Задача обновления Xray запланирована на $TIME в день $DAY_NAME.${NC}\n"
+
+elif [ "$ACTION" = "update" ] || [ "$ACTION" = "-u" ]; then
+    VERSION_ARG=$2
+
     if [ -n "$VERSION_ARG" ]; then
         VERSION_PATH="v$VERSION_ARG"
         URL_BASE="https://github.com/XTLS/Xray-core/releases/download/$VERSION_PATH"
@@ -114,8 +148,6 @@ if [ "$ACTION" = "update" ]; then
     if [ -f /opt/sbin/xray ]; then
         if [ ! -f "$BACKUP_FILE" ]; then
             printf "${GREEN}Архивация существующего файла xray...${NC}\n"
-            # Сохраните права доступа текущего файла xray
-            ls -l /opt/sbin/xray | awk '{print $1}' > $BACKUP_DIR/xray_permissions
             mv /opt/sbin/xray "$BACKUP_FILE"
         else
             printf "${YELLOW}Резервная копия с именем xray_backup_v1.8.4 уже существует.${NC}\n"
@@ -153,7 +185,7 @@ if [ "$ACTION" = "update" ]; then
 
     printf "${GREEN}Обновление завершено.${NC}\n"
 
-elif [ "$ACTION" = "recover" ]; then
+elif [ "$ACTION" = "recover" ] || [ "$ACTION" = "-r" ]; then
     # Остановка xkeen
     printf "${GREEN}Остановка xkeen...${NC}\n"
     xkeen -stop
@@ -165,14 +197,8 @@ elif [ "$ACTION" = "recover" ]; then
         printf "${GREEN}Восстановление оригинального файла xray...${NC}\n"
         mv "$BACKUP_FILE" /opt/sbin/xray
 
-        # Восстановите права доступа
-        if [ -f /opt/backups/xray_permissions ]; then
-            PERMS=$(cat /opt/backups/xray_permissions)
-            chmod $PERMS /opt/sbin/xray
-            rm /opt/backups/xray_permissions
-        else
-            chmod 755 /opt/sbin/xray
-        fi
+        # Установка прав доступа
+        chmod 755 /opt/sbin/xray
     else
         printf "${RED}Резервная копия не найдена. Восстановление невозможно.${NC}\n"
         exit 1
@@ -183,4 +209,7 @@ elif [ "$ACTION" = "recover" ]; then
     xkeen -start
 
     printf "${GREEN}Восстановление завершено.${NC}\n"
+else
+    show_help
+    exit 0
 fi
