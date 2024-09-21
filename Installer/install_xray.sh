@@ -124,7 +124,7 @@ if [ "$ACTION" = "update" ]; then
 
     # Скачайте архив
     printf "${GREEN}Скачивание $ARCHIVE...${NC}\n"
-    curl -L -o /tmp/$ARCHIVE $URL
+    curl -s -S -L -o /tmp/$ARCHIVE $URL
 
     # Извлечение только нужного файла из архива
     printf "${GREEN}Извлечение xray из $ARCHIVE...${NC}\n"
